@@ -1,0 +1,260 @@
+import os
+import time
+import networkx as nx
+import matplotlib.pyplot as plt
+
+
+# -----------------------------------
+# GRAPH IMPLEMENTATION
+# -----------------------------------
+
+class Graph:
+
+    def __init__(self, vertices):
+
+        self.V = vertices
+        self.adj = {}
+
+        for i in range(1, vertices + 1):
+            self.adj[i] = []
+
+    def add_edge(self, u, v):
+
+        self.adj[u].append(v)
+        self.adj[v].append(u)
+
+
+# -----------------------------------
+# GENERATE ALL SUBSETS
+# -----------------------------------
+
+def generate_subsets(vertices):
+
+    subsets = []
+
+    def generate(i, current):
+
+        if i == len(vertices):
+            subsets.append(current.copy())
+            return
+
+        # Do not select vertex
+        generate(i + 1, current)
+
+        # Select vertex
+        current.append(vertices[i])
+
+        generate(i + 1, current)
+
+        # Remove vertex
+        current.pop()
+
+    generate(0, [])
+
+    return subsets
+
+
+# -----------------------------------
+# CHECK VERTEX COVER
+# -----------------------------------
+
+def is_vertex_cover(cover, edges):
+
+    for u, v in edges:
+
+        # If neither endpoint is selected
+        if u not in cover and v not in cover:
+            return False
+
+    return True
+
+
+# -----------------------------------
+# BRUTE FORCE VERTEX COVER
+# -----------------------------------
+
+def vertex_cover(graph, edges):
+
+    vertices = list(graph.adj.keys())
+
+    subsets = generate_subsets(vertices)
+
+    best_cover = None
+
+    for subset in subsets:
+
+        if is_vertex_cover(subset, edges):
+
+            if best_cover is None:
+                best_cover = subset
+
+            elif len(subset) < len(best_cover):
+                best_cover = subset
+
+    return best_cover
+
+
+# -----------------------------------
+# READ INPUT FILE
+# -----------------------------------
+
+file_path = os.path.join(
+    os.path.dirname(__file__),
+    "input.txt"
+)
+
+
+with open(file_path, "r") as file:
+
+    # Read n and m
+    line = file.readline().strip()
+
+    n, m = map(int, line.split())
+
+    # Create graph
+    graph = Graph(n)
+
+    edges = []
+
+    # Read m edges
+    for i in range(m):
+
+        line = file.readline().strip()
+
+        u, v = map(int, line.split())
+
+        graph.add_edge(u, v)
+
+        edges.append((u, v))
+
+
+# -----------------------------------
+# RUN BRUTE FORCE
+# -----------------------------------
+
+start_time = time.perf_counter()
+
+best_cover = vertex_cover(graph, edges)
+
+end_time = time.perf_counter()
+
+running_time = end_time - start_time
+
+
+# -----------------------------------
+# SAVE RESULT TO OUTPUT FILE
+# -----------------------------------
+
+output_path = os.path.join(
+    os.path.dirname(__file__),
+    "output.txt"
+)
+
+
+with open(output_path, "w") as file:
+
+    file.write("BRUTE FORCE VERTEX COVER RESULT\n")
+    file.write("================================\n\n")
+
+    file.write(f"Number of vertices (n): {n}\n")
+    file.write(f"Number of edges (m): {m}\n")
+
+    file.write(f"Minimum Vertex Cover: {best_cover}\n")
+
+    file.write(
+        f"Size of Vertex Cover: {len(best_cover)}\n"
+    )
+
+    file.write(
+        f"Running Time: {running_time:.10f} seconds\n"
+    )
+
+
+# -----------------------------------
+# PRINT RESULT
+# -----------------------------------
+
+print("n =", n)
+print("m =", m)
+
+print("Minimum Vertex Cover:", best_cover)
+
+print("Size:", len(best_cover))
+
+print(
+    "Running Time:",
+    running_time,
+    "seconds"
+)
+
+print("\nResult saved to output.txt")
+
+
+# -----------------------------------
+# PLOT GRAPH
+# -----------------------------------
+
+G = nx.Graph()
+
+# Add vertices
+G.add_nodes_from(range(1, n + 1))
+
+# Add edges
+G.add_edges_from(edges)
+
+
+# Position of vertices
+pos = nx.spring_layout(G, seed=42)
+
+
+# Separate cover and non-cover vertices
+cover_vertices = set(best_cover)
+
+non_cover_vertices = set(G.nodes()) - cover_vertices
+
+
+# Draw non-cover vertices
+nx.draw_networkx_nodes(
+    G,
+    pos,
+    nodelist=list(non_cover_vertices),
+    node_color="lightblue",
+    node_size=800
+)
+
+
+# Draw cover vertices
+nx.draw_networkx_nodes(
+    G,
+    pos,
+    nodelist=list(cover_vertices),
+    node_color="red",
+    node_size=800
+)
+
+
+# Draw edges
+nx.draw_networkx_edges(
+    G,
+    pos,
+    width=1.5
+)
+
+
+# Draw labels
+nx.draw_networkx_labels(
+    G,
+    pos,
+    font_size=12,
+    font_weight="bold"
+)
+
+
+plt.title(
+    f"Vertex Cover: n={n}, m={m}, "
+    f"VC Size={len(best_cover)}"
+)
+
+plt.axis("off")
+
+plt.show()
